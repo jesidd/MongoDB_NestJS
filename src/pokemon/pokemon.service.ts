@@ -4,6 +4,8 @@ import { UpdatePokemonDto } from './dto/update-pokemon.dto';
 import { isValidObjectId, Model } from 'mongoose';
 import { Pokemon, PokemonDocument } from './entities/pokemon.entity';
 import { InjectModel } from '@nestjs/mongoose';
+import { PaginationDto } from './dto/pagination-pokemon.dto';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class PokemonService {
@@ -11,8 +13,10 @@ export class PokemonService {
   constructor(
 
     @InjectModel(Pokemon.name)
-    private readonly pokemonModel: Model<PokemonDocument>
-  ) {}
+    private readonly pokemonModel: Model<PokemonDocument>,
+
+    private readonly configService: ConfigService
+  ) {console.log(configService.get('port'))}
 
   async create(createPokemonDto: CreatePokemonDto) {
     try {
@@ -26,8 +30,14 @@ export class PokemonService {
     }
   }
 
-  findAll() {
-    return `This action returns all pokemon`;
+  findAll(paginationDto: PaginationDto) {
+    const { limit = 10, offset = 0 } = paginationDto;
+
+    return this.pokemonModel.find()
+      .limit(limit)
+      .skip(offset)
+      .sort({ no: 1 })
+      .select('-__v');
   }
 
   async findOne(term: string): Promise<PokemonDocument> {
@@ -88,7 +98,7 @@ export class PokemonService {
   }
 
   async remove(id: string) {
-    const pokemon = await this.findOne(id);
-    await pokemon.deleteOne();
+    const { deletedCount } = await this.pokemonModel.deleteOne({ _id: id });
+    return deletedCount;
   }
 }
